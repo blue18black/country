@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+<title>World Quiz — 国旗と首都</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f1f5f9;
+  --surface:  #ffffff;
+  --surface2: #f8fafc;
+  --border:   #e2e8f0;
+  --accent:   #3b82f6;
+  --accent-d: #1d4ed8;
+  --accent-bg:#eff6ff;
+  --text:     #0f172a;
+  --sub:      #475569;
+  --muted:    #94a3b8;
+  --green:    #16a34a;
+  --green-bg: #f0fdf4;
+  --red:      #dc2626;
+  --red-bg:   #fef2f2;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body { min-height: 100%; font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); }
+
+/* ── HOME ── */
+#home { display: none; flex-direction: column; align-items: center; min-height: 100svh; padding: 52px 20px 52px; }
+#home.active { display: flex; }
+
+.home-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-bg); color: var(--accent); font-size: .78rem; font-weight: 700; letter-spacing: .08em; padding: 5px 12px; border-radius: 99px; margin-bottom: 20px; }
+.home-title { font-family:'Outfit',sans-serif; font-size:clamp(2rem,8vw,3.2rem); font-weight:800; color:var(--text); letter-spacing:-.02em; text-align:center; line-height:1.1; }
+.home-title span { color: var(--accent); }
+.home-sub { font-size:.95rem; color:var(--sub); margin-top:10px; text-align:center; }
+
+.flag-banner { width:100%; overflow:hidden; margin:36px 0;
+  mask-image:linear-gradient(to right,transparent,#000 12%,#000 88%,transparent);
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 12%,#000 88%,transparent); }
+.flag-row { display:flex; gap:10px; width:max-content; animation:marquee 40s linear infinite; }
+.flag-row:hover { animation-play-state:paused; }
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.banner-flag { height:36px; width:auto; border-radius:5px; box-shadow:0 1px 6px rgba(0,0,0,.18); display:block; flex-shrink:0; }
+
+.mode-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; max-width:560px; width:100%; }
+.mode-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  width: 240px;
+  cursor: pointer;
+  transition: transform .18s, border-color .18s, box-shadow .18s;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.mode-card:hover { transform:translateY(-5px); border-color:var(--accent); box-shadow:0 8px 28px rgba(59,130,246,.15); }
+.card-flag-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; width:80px; margin:0 auto 16px; }
+.card-flag-grid img { width:100%; height:auto; border-radius:3px; box-shadow:0 1px 4px rgba(0,0,0,.12); display:block; }
+.card-icon { font-size:44px; margin-bottom:16px; }
+.mode-card h2 { font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:700; color:var(--text); margin-bottom:8px; }
+.mode-card p { font-size:.82rem; color:var(--sub); line-height:1.65; }
+
+/* ── GAME ── */
+#game { display:none; }
+#game.active { display:flex; position:fixed; inset:0; flex-direction:column; align-items:center; background:var(--bg); }
+.game-inner { width:100%; max-width:640px; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+.game-header { flex-shrink:0; display:flex; justify-content:space-between; align-items:center; padding:12px 16px 10px; gap:8px; background:var(--surface); border-bottom:1px solid var(--border); }
+.back-btn { background:none; border:1.5px solid var(--border); color:var(--sub); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:.82rem; transition:color .2s,border-color .2s; white-space:nowrap; flex-shrink:0; }
+.back-btn:hover { color:var(--text); border-color:var(--sub); }
+.game-mode-label { font-family:'Outfit',sans-serif; font-size:.85rem; font-weight:700; color:var(--accent); letter-spacing:.04em; text-align:center; }
+.score-display { font-family:'Outfit',sans-serif; font-size:.95rem; font-weight:700; color:var(--text); white-space:nowrap; flex-shrink:0; }
+
+.timer-row { flex-shrink:0; display:flex; align-items:center; gap:10px; padding:10px 16px 6px; }
+.timer-num { font-family:'Outfit',sans-serif; font-size:.9rem; font-weight:700; color:var(--accent); min-width:22px; text-align:right; }
+.timer-num.urgent { color:var(--red); }
+.timer-wrap { flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.timer-bar { height:100%; background:var(--accent); border-radius:3px; transition:width 1s linear,background .5s; }
+.timer-bar.urgent { background:var(--red); }
+
+.question-card { flex-shrink:0; background:var(--surface); border:1.5px solid var(--border); border-radius:16px; margin:6px 16px 8px; padding:18px 20px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+.q-label { font-size:.7rem; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; margin-bottom:14px; font-weight:600; }
+.flag-wrap { display:flex; justify-content:center; align-items:center; min-height:88px; margin-bottom:6px; }
+.flag-img { max-width:180px; max-height:116px; width:auto; height:auto; border-radius:6px; box-shadow:0 3px 12px rgba(0,0,0,.14); display:block; }
+.country-name-display { font-family:'Outfit',sans-serif; font-size:clamp(1.4rem,5vw,2rem); font-weight:700; color:var(--text); padding:6px 0; word-break:break-all; }
+.q-hint { font-size:.75rem; color:var(--muted); margin-top:8px; }
+
+.in-card-feedback { font-size:.95rem; font-weight:700; text-align:center; margin-top:10px; display:none; }
+.in-card-feedback.ok { color:var(--green); }
+.in-card-feedback.ng { color:var(--red); }
+
+.progress-row { flex-shrink:0; display:flex; align-items:center; gap:10px; padding:0 16px 6px; }
+.progress-text { font-size:.75rem; color:var(--muted); white-space:nowrap; }
+.progress-bar-wrap { flex:1; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+.progress-bar { height:100%; background:var(--accent); border-radius:2px; transition:width .4s; opacity:.45; }
+
+.game-footer { flex-shrink:0; margin-top:auto; padding:10px 16px 22px; background:var(--surface); border-top:1px solid var(--border); }
+.input-wrap { position:relative; width:100%; margin-bottom:8px; }
+.suggest-list { position:absolute; bottom:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1.5px solid var(--accent); border-radius:12px; overflow-y:auto; z-index:200; max-height:38svh; box-shadow:0 4px 20px rgba(59,130,246,.15); }
+.suggest-item { padding:10px 16px; cursor:pointer; font-size:.92rem; transition:background .12s; color:var(--text); }
+.suggest-item:hover,.suggest-item.focused { background:var(--accent-bg); }
+.suggest-match { color:var(--accent); font-weight:700; }
+.answer-input { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:12px; padding:13px 16px; font-size:1rem; color:var(--text); font-family:'Noto Sans JP',sans-serif; outline:none; transition:border-color .2s,background .2s; -webkit-appearance:none; appearance:none; }
+.answer-input::placeholder { color:var(--muted); }
+.answer-input:focus { border-color:var(--accent); background:var(--surface); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+.answer-input.correct { border-color:var(--green); background:var(--green-bg); }
+.answer-input.wrong   { border-color:var(--red);   background:var(--red-bg); }
+.skip-btn { width:100%; background:none; border:1.5px solid var(--border); color:var(--sub); padding:8px 14px; border-radius:10px; cursor:pointer; font-size:.84rem; transition:color .2s,border-color .2s,background .2s; }
+.skip-btn:hover { color:var(--text); border-color:var(--sub); background:var(--surface2); }
+.skip-btn:disabled { opacity:.35; cursor:default; }
+
+/* ── RESULT ── */
+#result { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100svh; padding:40px 20px; text-align:center; }
+#result.active { display:flex; }
+.result-emoji { font-size:60px; margin-bottom:16px; }
+.result-title { font-family:'Outfit',sans-serif; font-size:1.9rem; font-weight:800; color:var(--text); margin-bottom:8px; }
+.result-score { font-family:'Outfit',sans-serif; font-size:3.5rem; font-weight:800; color:var(--accent); margin:16px 0; }
+.result-score span { font-size:1.1rem; color:var(--muted); font-weight:600; }
+.result-msg { color:var(--sub); font-size:.95rem; margin-bottom:32px; }
+.result-btns { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+.btn-primary { background:var(--accent); color:#fff; border:none; border-radius:12px; padding:14px 32px; font-family:'Outfit',sans-serif; font-size:1rem; font-weight:700; cursor:pointer; transition:background .2s,transform .1s; box-shadow:0 2px 8px rgba(59,130,246,.3); }
+.btn-primary:hover { background:var(--accent-d); transform:translateY(-2px); }
+.btn-secondary { background:var(--surface); color:var(--text); border:1.5px solid var(--border); border-radius:12px; padding:14px 32px; font-family:'Outfit',sans-serif; font-size:1rem; font-weight:600; cursor:pointer; transition:border-color .2s,transform .1s; }
+.btn-secondary:hover { border-color:var(--sub); transform:translateY(-2px); }
+
+.suggest-list::-webkit-scrollbar{width:4px} .suggest-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="home" class="screen active">
+  <div class="home-badge">🌍 World Quiz</div>
+  <div class="home-title">国旗と首都を<span>学ぼう</span></div>
+  <div class="home-sub">全196カ国 — タイムアタック付き</div>
+  <div class="flag-banner"><div class="flag-row" id="flagBannerRow"></div></div>
+  <div class="mode-cards">
+    <div class="mode-card" onclick="startGame('flag')">
+      <div class="card-flag-grid" id="cardFlagGrid"></div>
+      <h2>🚩 国旗当て</h2>
+      <p>国旗を見て国名を答えよう。文字を入力すると候補が絞れるよ。</p>
+    </div>
+    <div class="mode-card" onclick="startGame('capital')">
+      <div class="card-icon">🏛️</div>
+      <h2>首都当て</h2>
+      <p>国名を見て首都を答えよう。文字を入力すると候補が絞れるよ。</p>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="screen">
+  <div class="game-inner">
+    <div class="game-header">
+      <button class="back-btn" onclick="goHome()">← ホーム</button>
+      <div class="game-mode-label" id="modeLabelEl"></div>
+      <div class="score-display">✅ <span id="scoreEl">0</span></div>
+    </div>
+    <div class="timer-row">
+      <div class="timer-num" id="timerNumEl">30</div>
+      <div class="timer-wrap"><div class="timer-bar" id="timerBarEl" style="width:100%"></div></div>
+    </div>
+    <div class="question-card">
+      <div class="q-label" id="qLabelEl"></div>
+      <div class="flag-wrap" id="flagWrap" style="display:none">
+        <img id="flagImg" class="flag-img" alt="国旗">
+      </div>
+      <div id="countryDisplay" class="country-name-display" style="display:none"></div>
+      <div class="in-card-feedback" id="feedbackEl"></div>
+      <div class="q-hint" id="qHintEl"></div>
+    </div>
+    <div class="progress-row">
+      <div class="progress-text" id="progressEl"></div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBarEl" style="width:0%"></div></div>
+    </div>
+    <div class="game-footer">
+      <div class="input-wrap">
+        <div class="suggest-list" id="suggestList" style="display:none"></div>
+        <input type="text" class="answer-input" id="answerInput" placeholder="ここに入力..."
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">わからない（スキップ）</button>
+    </div>
+  </div>
+</div>
+
+<div id="result" class="screen">
+  <div class="result-emoji" id="resultEmoji">🎉</div>
+  <div class="result-title">ゲーム終了！</div>
+  <div class="result-score" id="resultScoreEl">0 <span>/ 196</span></div>
+  <div class="result-msg" id="resultMsgEl"></div>
+  <div class="result-btns">
+    <button class="btn-primary" onclick="retryGame()">もう一度</button>
+    <button class="btn-secondary" onclick="goHome()">ホームへ</button>
+  </div>
+</div>
+
+<script>
+const countries = [
+  // アジア
+  { name:"日本",                   capital:"東京",                         code:"jp" },
+  { name:"中国",                   capital:"北京",                         code:"cn" },
+  { name:"韓国",                   capital:"ソウル",                       code:"kr" },
+  { name:"北朝鮮",                 capital:"平壌",                         code:"kp" },
+  { name:"モンゴル",               capital:"ウランバートル",               code:"mn" },
+  { name:"インド",                 capital:"ニューデリー",                 code:"in" },
+  { name:"パキスタン",             capital:"イスラマバード",               code:"pk" },
+  { name:"バングラデシュ",         capital:"ダッカ",                       code:"bd" },
+  { name:"スリランカ",             capital:"スリジャヤワルダナプラコッテ", code:"lk" },
+  { name:"ネパール",               capital:"カトマンズ",                   code:"np" },
+  { name:"ブータン",               capital:"ティンプー",                   code:"bt" },
+  { name:"モルディブ",             capital:"マレ",                         code:"mv" },
+  { name:"アフガニスタン",         capital:"カブール",                     code:"af" },
+  { name:"タイ",                   capital:"バンコク",                     code:"th" },
+  { name:"ベトナム",               capital:"ハノイ",                       code:"vn" },
+  { name:"ミャンマー",             capital:"ネーピードー",                 code:"mm" },
+  { name:"カンボジア",             capital:"プノンペン",                   code:"kh" },
+  { name:"ラオス",                 capital:"ビエンチャン",                 code:"la" },
+  { name:"マレーシア",             capital:"クアラルンプール",             code:"my" },
+  { name:"シンガポール",           capital:"シンガポール",                 code:"sg" },
+  { name:"インドネシア",           capital:"ジャカルタ",                   code:"id" },
+  { name:"フィリピン",             capital:"マニラ",                       code:"ph" },
+  { name:"東ティモール",           capital:"ディリ",                       code:"tl" },
+  { name:"ブルネイ",               capital:"バンダルスリブガワン",         code:"bn" },
+  { name:"カザフスタン",           capital:"アスタナ",                     code:"kz" },
+  { name:"ウズベキスタン",         capital:"タシケント",                   code:"uz" },
+  { name:"トルクメニスタン",       capital:"アシガバット",                 code:"tm" },
+  { name:"キルギス",               capital:"ビシュケク",                   code:"kg" },
+  { name:"タジキスタン",           capital:"ドゥシャンベ",                 code:"tj" },
+  { name:"アゼルバイジャン",       capital:"バクー",                       code:"az" },
+  { name:"アルメニア",             capital:"エレバン",                     code:"am" },
+  { name:"ジョージア",             capital:"トビリシ",                     code:"ge" },
+  { name:"トルコ",                 capital:"アンカラ",                     code:"tr" },
+  { name:"サウジアラビア",         capital:"リヤド",                       code:"sa" },
+  { name:"アラブ首長国連邦",       capital:"アブダビ",                     code:"ae" },
+  { name:"カタール",               capital:"ドーハ",                       code:"qa" },
+  { name:"クウェート",             capital:"クウェート市",                 code:"kw" },
+  { name:"バーレーン",             capital:"マナーマ",                     code:"bh" },
+  { name:"オマーン",               capital:"マスカット",                   code:"om" },
+  { name:"イエメン",               capital:"サナア",                       code:"ye" },
+  { name:"イラク",                 capital:"バグダッド",                   code:"iq" },
+  { name:"イラン",                 capital:"テヘラン",                     code:"ir" },
+  { name:"シリア",                 capital:"ダマスカス",                   code:"sy" },
+  { name:"レバノン",               capital:"ベイルート",                   code:"lb" },
+  { name:"ヨルダン",               capital:"アンマン",                     code:"jo" },
+  { name:"イスラエル",             capital:"エルサレム",                   code:"il" },
+  { name:"パレスチナ",             capital:"ラマッラー",                   code:"ps" },
+  { name:"キプロス",               capital:"ニコシア",                     code:"cy" },
+  // ヨーロッパ
+  { name:"ロシア",                 capital:"モスクワ",                     code:"ru" },
+  { name:"ウクライナ",             capital:"キーウ",                       code:"ua" },
+  { name:"ベラルーシ",             capital:"ミンスク",                     code:"by" },
+  { name:"モルドバ",               capital:"キシナウ",                     code:"md" },
+  { name:"ポーランド",             capital:"ワルシャワ",                   code:"pl" },
+  { name:"チェコ",                 capital:"プラハ",                       code:"cz" },
+  { name:"スロバキア",             capital:"ブラチスラバ",                 code:"sk" },
+  { name:"ハンガリー",             capital:"ブダペスト",                   code:"hu" },
+  { name:"ルーマニア",             capital:"ブカレスト",                   code:"ro" },
+  { name:"ブルガリア",             capital:"ソフィア",                     code:"bg" },
+  { name:"セルビア",               capital:"ベオグラード",                 code:"rs" },
+  { name:"クロアチア",             capital:"ザグレブ",                     code:"hr" },
+  { name:"スロベニア",             capital:"リュブリャナ",                 code:"si" },
+  { name:"ボスニア・ヘルツェゴビナ", capital:"サラエボ",                  code:"ba" },
+  { name:"モンテネグロ",           capital:"ポドゴリツァ",                 code:"me" },
+  { name:"北マケドニア",           capital:"スコピエ",                     code:"mk" },
+  { name:"アルバニア",             capital:"ティラナ",                     code:"al" },
+  { name:"コソボ",                 capital:"プリシュティナ",               code:"xk" },
+  { name:"ギリシャ",               capital:"アテネ",                       code:"gr" },
+  { name:"ドイツ",                 capital:"ベルリン",                     code:"de" },
+  { name:"フランス",               capital:"パリ",                         code:"fr" },
+  { name:"イタリア",               capital:"ローマ",                       code:"it" },
+  { name:"スペイン",               capital:"マドリード",                   code:"es" },
+  { name:"ポルトガル",             capital:"リスボン",                     code:"pt" },
+  { name:"イギリス",               capital:"ロンドン",                     code:"gb" },
+  { name:"アイルランド",           capital:"ダブリン",                     code:"ie" },
+  { name:"オランダ",               capital:"アムステルダム",               code:"nl" },
+  { name:"ベルギー",               capital:"ブリュッセル",                 code:"be" },
+  { name:"ルクセンブルク",         capital:"ルクセンブルク市",             code:"lu" },
+  { name:"スイス",                 capital:"ベルン",                       code:"ch" },
+  { name:"オーストリア",           capital:"ウィーン",                     code:"at" },
+  { name:"リヒテンシュタイン",     capital:"ファドゥーツ",                 code:"li" },
+  { name:"スウェーデン",           capital:"ストックホルム",               code:"se" },
+  { name:"ノルウェー",             capital:"オスロ",                       code:"no" },
+  { name:"デンマーク",             capital:"コペンハーゲン",               code:"dk" },
+  { name:"フィンランド",           capital:"ヘルシンキ",                   code:"fi" },
+  { name:"アイスランド",           capital:"レイキャビク",                 code:"is" },
+  { name:"エストニア",             capital:"タリン",                       code:"ee" },
+  { name:"ラトビア",               capital:"リガ",                         code:"lv" },
+  { name:"リトアニア",             capital:"ビリニュス",                   code:"lt" },
+  { name:"モナコ",                 capital:"モナコ市",                     code:"mc" },
+  { name:"アンドラ",               capital:"アンドラ・ラ・ベリャ",         code:"ad" },
+  { name:"サンマリノ",             capital:"サンマリノ市",                 code:"sm" },
+  { name:"バチカン市国",           capital:"バチカン市国",                 code:"va" },
+  { name:"マルタ",                 capital:"バレッタ",                     code:"mt" },
+  // アフリカ
+  { name:"エジプト",               capital:"カイロ",                       code:"eg" },
+  { name:"リビア",                 capital:"トリポリ",                     code:"ly" },
+  { name:"チュニジア",             capital:"チュニス",                     code:"tn" },
+  { name:"アルジェリア",           capital:"アルジェ",                     code:"dz" },
+  { name:"モロッコ",               capital:"ラバト",                       code:"ma" },
+  { name:"スーダン",               capital:"ハルツーム",                   code:"sd" },
+  { name:"南スーダン",             capital:"ジュバ",                       code:"ss" },
+  { name:"エリトリア",             capital:"アスマラ",                     code:"er" },
+  { name:"エチオピア",             capital:"アディスアベバ",               code:"et" },
+  { name:"ジブチ",                 capital:"ジブチ市",                     code:"dj" },
+  { name:"ソマリア",               capital:"モガディシュ",                 code:"so" },
+  { name:"ケニア",                 capital:"ナイロビ",                     code:"ke" },
+  { name:"ウガンダ",               capital:"カンパラ",                     code:"ug" },
+  { name:"タンザニア",             capital:"ドドマ",                       code:"tz" },
+  { name:"ルワンダ",               capital:"キガリ",                       code:"rw" },
+  { name:"ブルンジ",               capital:"ギテガ",                       code:"bi" },
+  { name:"コンゴ民主共和国",       capital:"キンシャサ",                   code:"cd" },
+  { name:"コンゴ共和国",           capital:"ブラザビル",                   code:"cg" },
+  { name:"中央アフリカ共和国",     capital:"バンギ",                       code:"cf" },
+  { name:"カメルーン",             capital:"ヤウンデ",                     code:"cm" },
+  { name:"ナイジェリア",           capital:"アブジャ",                     code:"ng" },
+  { name:"ニジェール",             capital:"ニアメ",                       code:"ne" },
+  { name:"チャド",                 capital:"ンジャメナ",                   code:"td" },
+  { name:"マリ",                   capital:"バマコ",                       code:"ml" },
+  { name:"ブルキナファソ",         capital:"ワガドゥグー",                 code:"bf" },
+  { name:"セネガル",               capital:"ダカール",                     code:"sn" },
+  { name:"ガンビア",               capital:"バンジュール",                 code:"gm" },
+  { name:"ギニアビサウ",           capital:"ビサウ",                       code:"gw" },
+  { name:"ギニア",                 capital:"コナクリ",                     code:"gn" },
+  { name:"シエラレオネ",           capital:"フリータウン",                 code:"sl" },
+  { name:"リベリア",               capital:"モンロビア",                   code:"lr" },
+  { name:"コートジボワール",       capital:"ヤムスクロ",                   code:"ci" },
+  { name:"ガーナ",                 capital:"アクラ",                       code:"gh" },
+  { name:"トーゴ",                 capital:"ロメ",                         code:"tg" },
+  { name:"ベナン",                 capital:"ポルトノボ",                   code:"bj" },
+  { name:"モーリタニア",           capital:"ヌアクショット",               code:"mr" },
+  { name:"カーボベルデ",           capital:"プライア",                     code:"cv" },
+  { name:"赤道ギニア",             capital:"マラボ",                       code:"gq" },
+  { name:"サントメ・プリンシペ",   capital:"サントメ",                     code:"st" },
+  { name:"ガボン",                 capital:"リーブルビル",                 code:"ga" },
+  { name:"アンゴラ",               capital:"ルアンダ",                     code:"ao" },
+  { name:"ザンビア",               capital:"ルサカ",                       code:"zm" },
+  { name:"マラウイ",               capital:"リロングウェ",                 code:"mw" },
+  { name:"モザンビーク",           capital:"マプト",                       code:"mz" },
+  { name:"ジンバブエ",             capital:"ハラレ",                       code:"zw" },
+  { name:"ボツワナ",               capital:"ハボローネ",                   code:"bw" },
+  { name:"ナミビア",               capital:"ウィントフック",               code:"na" },
+  { name:"南アフリカ",             capital:"プレトリア",                   code:"za" },
+  { name:"レソト",                 capital:"マセル",                       code:"ls" },
+  { name:"エスワティニ",           capital:"ムババーネ",                   code:"sz" },
+  { name:"マダガスカル",           capital:"アンタナナリボ",               code:"mg" },
+  { name:"コモロ",                 capital:"モロニ",                       code:"km" },
+  { name:"モーリシャス",           capital:"ポートルイス",                 code:"mu" },
+  { name:"セーシェル",             capital:"ビクトリア",                   code:"sc" },
+  // 北米・中米・カリブ
+  { name:"アメリカ",               capital:"ワシントンD.C.",               code:"us" },
+  { name:"カナダ",                 capital:"オタワ",                       code:"ca" },
+  { name:"メキシコ",               capital:"メキシコシティ",               code:"mx" },
+  { name:"グアテマラ",             capital:"グアテマラシティ",             code:"gt" },
+  { name:"ベリーズ",               capital:"ベルモパン",                   code:"bz" },
+  { name:"ホンジュラス",           capital:"テグシガルパ",                 code:"hn" },
+  { name:"エルサルバドル",         capital:"サンサルバドル",               code:"sv" },
+  { name:"ニカラグア",             capital:"マナグア",                     code:"ni" },
+  { name:"コスタリカ",             capital:"サンホセ",                     code:"cr" },
+  { name:"パナマ",                 capital:"パナマシティ",                 code:"pa" },
+  { name:"キューバ",               capital:"ハバナ",                       code:"cu" },
+  { name:"ジャマイカ",             capital:"キングストン",                 code:"jm" },
+  { name:"ハイチ",                 capital:"ポルトープランス",             code:"ht" },
+  { name:"ドミニカ共和国",         capital:"サントドミンゴ",               code:"do" },
+  { name:"トリニダード・トバゴ",   capital:"ポートオブスペイン",           code:"tt" },
+  { name:"バルバドス",             capital:"ブリッジタウン",               code:"bb" },
+  { name:"セントルシア",           capital:"カストリーズ",                 code:"lc" },
+  { name:"セントビンセント・グレナディーン", capital:"キングスタウン",     code:"vc" },
+  { name:"グレナダ",               capital:"セントジョージズ",             code:"gd" },
+  { name:"アンティグア・バーブーダ", capital:"セントジョンズ",            code:"ag" },
+  { name:"セントクリストファー・ネービス", capital:"バセテール",           code:"kn" },
+  { name:"ドミニカ国",             capital:"ロゾー",                       code:"dm" },
+  { name:"バハマ",                 capital:"ナッソー",                     code:"bs" },
+  // 南米
+  { name:"コロンビア",             capital:"ボゴタ",                       code:"co" },
+  { name:"ベネズエラ",             capital:"カラカス",                     code:"ve" },
+  { name:"ガイアナ",               capital:"ジョージタウン",               code:"gy" },
+  { name:"スリナム",               capital:"パラマリボ",                   code:"sr" },
+  { name:"ブラジル",               capital:"ブラジリア",                   code:"br" },
+  { name:"エクアドル",             capital:"キト",                         code:"ec" },
+  { name:"ペルー",                 capital:"リマ",                         code:"pe" },
+  { name:"ボリビア",               capital:"スクレ",                       code:"bo" },
+  { name:"パラグアイ",             capital:"アスンシオン",                 code:"py" },
+  { name:"アルゼンチン",           capital:"ブエノスアイレス",             code:"ar" },
+  { name:"チリ",                   capital:"サンティアゴ",                 code:"cl" },
+  { name:"ウルグアイ",             capital:"モンテビデオ",                 code:"uy" },
+  // オセアニア
+  { name:"オーストラリア",         capital:"キャンベラ",                   code:"au" },
+  { name:"ニュージーランド",       capital:"ウェリントン",                 code:"nz" },
+  { name:"パプアニューギニア",     capital:"ポートモレスビー",             code:"pg" },
+  { name:"フィジー",               capital:"スバ",                         code:"fj" },
+  { name:"ソロモン諸島",           capital:"ホニアラ",                     code:"sb" },
+  { name:"バヌアツ",               capital:"ポートビラ",                   code:"vu" },
+  { name:"サモア",                 capital:"アピア",                       code:"ws" },
+  { name:"トンガ",                 capital:"ヌクアロファ",                 code:"to" },
+  { name:"キリバス",               capital:"タラワ",                       code:"ki" },
+  { name:"ミクロネシア連邦",       capital:"パリキール",                   code:"fm" },
+  { name:"マーシャル諸島",         capital:"マジュロ",                     code:"mh" },
+  { name:"パラオ",                 capital:"ンゲルルムッド",               code:"pw" },
+  { name:"ナウル",                 capital:"ヤレン",                       code:"nr" },
+  { name:"ツバル",                 capital:"フナフティ",                   code:"tv" },
+];
+
+const TIMER_SEC = 30;
+const BANNER_CODES = ['jp','us','gb','fr','de','br','cn','in','au','za','ru','ar','ca','mx','eg','tr','th','vn','kr','it'];
+const CARD_CODES   = ['jp','fr','br','za'];
+
+(function buildHome() {
+  const row = document.getElementById('flagBannerRow');
+  [...BANNER_CODES, ...BANNER_CODES].forEach(code => {
+    const img = document.createElement('img');
+    img.src = `https://flagcdn.com/w80/${code}.png`;
+    img.className = 'banner-flag'; img.alt = ''; img.loading = 'lazy';
+    row.appendChild(img);
+  });
+  const grid = document.getElementById('cardFlagGrid');
+  CARD_CODES.forEach(code => {
+    const img = document.createElement('img');
+    img.src = `https://flagcdn.com/w80/${code}.png`;
+    img.alt = ''; img.loading = 'lazy';
+    grid.appendChild(img);
+  });
+})();
+
+let currentMode = 'flag', queue = [], currentIndex = 0, score = 0;
+let answered = false, timerInterval = null, timeLeft = TIMER_SEC, suggestFocusIndex = -1;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome() {
+  clearInterval(timerInterval);
+  document.getElementById('answerInput').blur();
+  showScreen('home');
+}
+
+function startGame(mode) {
+  currentMode = mode;
+  score = 0;
+  currentIndex = 0;
+  queue = shuffle([...countries]);
+  showScreen('game');
+  document.getElementById('modeLabelEl').textContent = mode === 'flag' ? '🚩 国旗当て' : '🏛️ 首都当て';
+  loadQuestion();
+}
+
+function retryGame() { startGame(currentMode); }
+
+function setFlagImg(code) {
+  const img = document.getElementById('flagImg');
+  const wrap = document.getElementById('flagWrap');
+  const sources = [`https://flagcdn.com/${code}.svg`, `https://flagcdn.com/w160/${code}.png`];
+  let idx = 0;
+  img.onload = () => { wrap.style.display = 'flex'; };
+  img.onerror = () => { if (++idx < sources.length) img.src = sources[idx]; else wrap.style.display = 'none'; };
+  wrap.style.display = 'none';
+  img.src = sources[0];
+}
+
+function loadQuestion() {
+  answered = false;
+  clearInput();
+  hideSuggest();
+  const c = queue[currentIndex];
+  const total = queue.length;
+  const input = document.getElementById('answerInput');
+  input.className = 'answer-input'; input.disabled = false;
+  const fb = document.getElementById('feedbackEl');
+  fb.textContent = ''; fb.className = 'in-card-feedback'; fb.style.display = 'none';
+  document.getElementById('qHintEl').style.display = '';
+  document.getElementById('scoreEl').textContent = score;
+  document.getElementById('progressEl').textContent = `${currentIndex + 1} / ${total} 問`;
+  document.getElementById('progressBarEl').style.width = (currentIndex / total * 100) + '%';
+  document.getElementById('skipBtn').disabled = false;
+
+  if (currentMode === 'flag') {
+    document.getElementById('qLabelEl').textContent = 'この国旗の国名は？';
+    document.getElementById('qHintEl').textContent = '国名を入力して候補を選ぼう';
+    document.getElementById('countryDisplay').style.display = 'none';
+    setFlagImg(c.code);
+  } else {
+    document.getElementById('qLabelEl').textContent = 'この国の首都は？';
+    document.getElementById('qHintEl').textContent = '首都名を入力して候補を選ぼう';
+    document.getElementById('flagWrap').style.display = 'none';
+    document.getElementById('countryDisplay').textContent = c.name;
+    document.getElementById('countryDisplay').style.display = 'block';
+  }
+  startTimer();
+  setTimeout(() => { if (!answered) document.getElementById('answerInput').focus(); }, 80);
+}
+
+function startTimer() {
+  clearInterval(timerInterval); timeLeft = TIMER_SEC; updateTimerUI();
+  timerInterval = setInterval(() => {
+    timeLeft--; updateTimerUI();
+    if (timeLeft <= 0) { clearInterval(timerInterval); if (!answered) timeUp(); }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const bar = document.getElementById('timerBarEl'), num = document.getElementById('timerNumEl');
+  bar.style.width = (timeLeft / TIMER_SEC * 100) + '%';
+  num.textContent = timeLeft;
+  const u = timeLeft <= 8;
+  bar.classList.toggle('urgent', u); num.classList.toggle('urgent', u);
+}
+
+function timeUp() {
+  answered = true; hideSuggest();
+  document.getElementById('answerInput').blur();
+  showFeedback(false, `時間切れ！正解は「${correctAnswer()}」`);
+  document.getElementById('answerInput').disabled = true;
+  document.getElementById('skipBtn').disabled = true;
+  setTimeout(nextQuestion, 2200);
+}
+
+function skipQuestion() {
+  if (answered) return;
+  answered = true; clearInterval(timerInterval); hideSuggest();
+  document.getElementById('answerInput').blur();
+  showFeedback(false, `正解は「${correctAnswer()}」`);
+  document.getElementById('answerInput').disabled = true;
+  document.getElementById('skipBtn').disabled = true;
+  setTimeout(nextQuestion, 2200);
+}
+
+function correctAnswer() {
+  return currentMode === 'flag' ? queue[currentIndex].name : queue[currentIndex].capital;
+}
+
+const answerInput = document.getElementById('answerInput');
+answerInput.addEventListener('input', e => {
+  if (answered) return;
+  const val = e.target.value.trim();
+  if (!val) { hideSuggest(); return; }
+  buildSuggest(val);
+});
+answerInput.addEventListener('keydown', e => {
+  const items = document.getElementById('suggestList').querySelectorAll('.suggest-item');
+  if (e.key === 'ArrowDown') { e.preventDefault(); suggestFocusIndex = Math.min(suggestFocusIndex + 1, items.length - 1); updateFocus(items); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); suggestFocusIndex = Math.max(suggestFocusIndex - 1, -1); updateFocus(items); }
+  else if (e.key === 'Enter') {
+    if (suggestFocusIndex >= 0 && items[suggestFocusIndex]) selectAnswer(items[suggestFocusIndex].textContent);
+    else { const v = answerInput.value.trim(); if (v) selectAnswer(v); }
+  }
+});
+
+function buildSuggest(val) {
+  const list = currentMode === 'flag' ? countries.map(c => c.name) : countries.map(c => c.capital);
+  const matches = list.filter(s => s.includes(val));
+  if (!matches.length) { hideSuggest(); return; }
+  suggestFocusIndex = -1;
+  const ul = document.getElementById('suggestList');
+  ul.innerHTML = '';
+  matches.slice(0, 8).forEach(m => {
+    const li = document.createElement('div'); li.className = 'suggest-item';
+    const idx = m.indexOf(val);
+    li.innerHTML = esc(m.slice(0, idx)) + `<span class="suggest-match">${esc(m.slice(idx, idx + val.length))}</span>` + esc(m.slice(idx + val.length));
+    li.addEventListener('mousedown', ev => { ev.preventDefault(); selectAnswer(m); });
+    li.addEventListener('touchstart', ev => { ev.preventDefault(); selectAnswer(m); }, { passive: false });
+    ul.appendChild(li);
+  });
+  ul.style.display = 'block';
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function updateFocus(items) { items.forEach((el, i) => { el.classList.toggle('focused', i === suggestFocusIndex); if (i === suggestFocusIndex) el.scrollIntoView({ block: 'nearest' }); }); }
+function hideSuggest() { document.getElementById('suggestList').style.display = 'none'; }
+function clearInput() { answerInput.value = ''; }
+
+function selectAnswer(answer) {
+  if (answered) return;
+  answerInput.value = answer; hideSuggest(); checkAnswer(answer);
+}
+
+function checkAnswer(answer) {
+  if (answered) return;
+  answered = true; clearInterval(timerInterval); answerInput.blur();
+  const correct = correctAnswer();
+  const isCorrect = answer.trim() === correct;
+  answerInput.className = 'answer-input ' + (isCorrect ? 'correct' : 'wrong');
+  answerInput.disabled = true;
+  document.getElementById('skipBtn').disabled = true;
+  if (isCorrect) { score++; document.getElementById('scoreEl').textContent = score; showFeedback(true, '正解！🎉'); }
+  else showFeedback(false, `不正解… 正解は「${correct}」`);
+  setTimeout(nextQuestion, 1800);
+}
+
+function showFeedback(ok, msg) {
+  const el = document.getElementById('feedbackEl');
+  el.textContent = msg;
+  el.className = 'in-card-feedback ' + (ok ? 'ok' : 'ng');
+  el.style.display = 'block';
+  document.getElementById('qHintEl').style.display = 'none';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= queue.length) endGame();
+  else loadQuestion();
+}
+
+function endGame() {
+  clearInterval(timerInterval); showScreen('result');
+  const total = queue.length;
+  const pct = score / total;
+  const [emoji, msg] = pct === 1 ? ['🏆','満点！完璧な世界博士だ！'] :
+    pct >= 0.8 ? ['🌟','すごい！かなりの地理マスター！'] :
+    pct >= 0.6 ? ['👏','良い結果！もう少しで上位だ！'] :
+    pct >= 0.4 ? ['📚','まだまだ伸びしろあり！'] :
+    ['🌱','繰り返し挑戦してみよう！'];
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultScoreEl').innerHTML = `${score} <span>/ ${total}</span>`;
+  document.getElementById('resultMsgEl').textContent = msg;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+</script>
+</body>
+</html>
